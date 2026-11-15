@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Never
+from typing import TYPE_CHECKING, Never, cast
 
 from mopidy.types import DurationMs, Percentage, PlaybackState
 
 from mopidy_mpd import exceptions, protocol
 
 if TYPE_CHECKING:
+    from mopidy.types import ReplayGainMode
+
     from mopidy_mpd.context import MpdContext
 
 
@@ -312,20 +314,28 @@ def repeat(context: MpdContext, state: bool) -> None:  # noqa: FBT001
 
 
 @protocol.commands.add("replay_gain_mode")
-def replay_gain_mode(context: MpdContext, mode: str) -> Never:
+def replay_gain_mode(context: MpdContext, mode: str) -> None:
     """
     *musicpd.org, playback section:*
 
         ``replay_gain_mode {MODE}``
 
-        Sets the replay gain mode. One of ``off``, ``track``, ``album``.
+        Sets the replay gain mode. One of ``off``, ``track``, ``album``,
+        ``auto``.
 
         Changing the mode during playback may take several seconds, because
         the new settings does not affect the buffered data.
 
         This command triggers the options idle event.
+
+    *Mopidy:*
+
+        The new mode is heard as soon as a volume change is. ``auto`` uses
+        ``track`` while random is on and ``album`` otherwise, like MPD.
     """
-    raise exceptions.MpdNotImplementedError  # TODO
+    if mode not in ("off", "track", "album", "auto"):
+        raise exceptions.MpdArgError("Unrecognized replay gain mode")
+    context.core.playback.set_replaygain_mode(cast("ReplayGainMode", mode)).get()
 
 
 @protocol.commands.add("replay_gain_status")
@@ -338,7 +348,7 @@ def replay_gain_status(context: MpdContext) -> protocol.Result:
         Prints replay gain options. Currently, only the variable
         ``replay_gain_mode`` is returned.
     """
-    return ("replay_gain_mode", "off")  # TODO
+    return ("replay_gain_mode", context.core.playback.get_replaygain_mode().get())
 
 
 @protocol.commands.add("seek", songpos=protocol.UINT, seconds=protocol.UFLOAT)

@@ -1,5 +1,3 @@
-import unittest
-
 from mopidy.models import Track
 from mopidy.types import PlaybackState
 
@@ -96,16 +94,54 @@ class PlaybackOptionsHandlerTest(protocol.BaseTestCase):
         self.assertInResponse("OK")
 
     def test_replay_gain_mode_off(self):
+        self.core.playback.set_replaygain_mode("track").get()
+
         self.send_request('replay_gain_mode "off"')
-        self.assertInResponse("ACK [0@0] {replay_gain_mode} Not implemented")
+
+        assert self.core.playback.get_replaygain_mode().get() == "off"
+        assert self.audio.replaygain_mode.get() == "off"
+        self.assertInResponse("OK")
 
     def test_replay_gain_mode_track(self):
         self.send_request('replay_gain_mode "track"')
-        self.assertInResponse("ACK [0@0] {replay_gain_mode} Not implemented")
+
+        assert self.core.playback.get_replaygain_mode().get() == "track"
+        assert self.audio.replaygain_mode.get() == "track"
+        self.assertInResponse("OK")
 
     def test_replay_gain_mode_album(self):
         self.send_request('replay_gain_mode "album"')
-        self.assertInResponse("ACK [0@0] {replay_gain_mode} Not implemented")
+
+        assert self.core.playback.get_replaygain_mode().get() == "album"
+        assert self.audio.replaygain_mode.get() == "album"
+        self.assertInResponse("OK")
+
+    def test_replay_gain_mode_auto_follows_random(self):
+        self.send_request('replay_gain_mode "auto"')
+        assert self.audio.replaygain_mode.get() == "album"
+
+        self.send_request('random "1"')
+        assert self.core.tracklist.get_random().get()  # Wait for core.
+        assert self.audio.replaygain_mode.get() == "track"
+
+        assert self.core.playback.get_replaygain_mode().get() == "auto"
+        self.assertInResponse("OK")
+
+    def test_replay_gain_mode_unknown(self):
+        self.send_request('replay_gain_mode "loud"')
+
+        assert self.core.playback.get_replaygain_mode().get() == "off"
+        self.assertEqualResponse(
+            "ACK [2@0] {replay_gain_mode} Unrecognized replay gain mode"
+        )
+
+    def test_replay_gain_mode_without_mode(self):
+        self.send_request("replay_gain_mode")
+
+        self.assertEqualResponse(
+            "ACK [2@0] {replay_gain_mode} "
+            'wrong number of arguments for "replay_gain_mode"'
+        )
 
     def test_replay_gain_status_default(self):
         self.send_request("replay_gain_status")
@@ -120,17 +156,39 @@ class PlaybackOptionsHandlerTest(protocol.BaseTestCase):
         self.send_request('mixrampdelay "10"')
         self.assertInResponse("ACK [0@0] {mixrampdelay} Not implemented")
 
-    @unittest.SkipTest
     def test_replay_gain_status_off(self):
-        pass
+        self.core.playback.set_replaygain_mode("track").get()
+        self.core.playback.set_replaygain_mode("off").get()
 
-    @unittest.SkipTest
+        self.send_request("replay_gain_status")
+
+        self.assertInResponse("replay_gain_mode: off")
+        self.assertInResponse("OK")
+
     def test_replay_gain_status_track(self):
-        pass
+        self.core.playback.set_replaygain_mode("track").get()
 
-    @unittest.SkipTest
+        self.send_request("replay_gain_status")
+
+        self.assertInResponse("replay_gain_mode: track")
+        self.assertInResponse("OK")
+
     def test_replay_gain_status_album(self):
-        pass
+        self.core.playback.set_replaygain_mode("album").get()
+
+        self.send_request("replay_gain_status")
+
+        self.assertInResponse("replay_gain_mode: album")
+        self.assertInResponse("OK")
+
+    def test_replay_gain_status_auto_shows_auto(self):
+        self.core.playback.set_replaygain_mode("auto").get()
+        self.core.tracklist.set_random(True).get()
+
+        self.send_request("replay_gain_status")
+
+        self.assertInResponse("replay_gain_mode: auto")
+        self.assertInResponse("OK")
 
 
 class PlaybackControlHandlerTest(protocol.BaseTestCase):

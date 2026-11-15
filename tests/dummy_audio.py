@@ -28,6 +28,7 @@ class DummyAudio(audio.Audio, pykka.ThreadingActor):
         self._live_stream = False
         self._tags = {}
         self._bad_uris = set()
+        self.replaygain_mode = "off"
 
     @override
     def set_uri(self, uri, live_stream=False, download=False):
@@ -77,6 +78,10 @@ class DummyAudio(audio.Audio, pykka.ThreadingActor):
     @override
     def get_current_tags(self):
         return self._tags
+
+    @override
+    def set_replaygain_mode(self, mode):
+        self.replaygain_mode = mode
 
     def _change_state(self, new_state):
         if not self._uri:

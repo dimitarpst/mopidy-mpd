@@ -104,7 +104,8 @@ support.
 - Channels for client-to-client communication are not supported.
 - Stickers are not supported.
 - Crossfade is not supported.
-- Replay gain is not supported.
+- Replay gain options other than the mode, such as the pre-amp, are set in
+  Mopidy's `audio` config, not from MPD clients.
 - `stats` does not provide any statistics.
 - `decoders` does not provide information about available decoders.
 - Live update of the music database is not supported.
