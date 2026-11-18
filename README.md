@@ -106,6 +106,8 @@ support.
 - Crossfade is not supported.
 - Replay gain options other than the mode, such as the pre-amp, are set in
   Mopidy's `audio` config, not from MPD clients.
+- The `replay_gain_mode` and `replay_gain_status` commands need a Mopidy version
+  that has `core.playback.set_replaygain_mode()`.
 - `stats` does not provide any statistics.
 - `decoders` does not provide information about available decoders.
 - Live update of the music database is not supported.
